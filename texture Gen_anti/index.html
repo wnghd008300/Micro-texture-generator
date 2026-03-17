@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parametric Micro-Texture Generator V2</title>
+  <meta name="description" content="Web-based parametric micro-texture generator for product designers. Create height maps and normal maps in real-time." />
+  <link rel="stylesheet" href="css/style.css" />
+  
+  <!-- Three.js for 3D Preview -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ═══ LEFT PANEL — Controls ═══ -->
+    <aside class="controls-panel">
+      <div class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Micro-Texture Generator</h1>
+          <span class="subtitle">Parametric Surface Designer V2</span>
+        </div>
+        <button id="reset-settings-btn" class="icon-btn tooltip-btn" title="Reset All Settings" style="width: 28px; height: 28px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+      </div>
+
+      <!-- Mode Selection -->
+      <!-- Mode Selection -->
+      <div class="control-section">
+        <div class="section-label" style="display: flex; justify-content: space-between; align-items: center; letter-spacing: 0.15em;">
+          TEXTURE MODE
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1L5 5L9 1" stroke="#5a5a72" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        
+        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+          <div class="input-group" style="flex: 1; margin: 0;">
+            <label class="group-label">Arrangement</label>
+            <select id="arrangement-select" class="custom-select">
+              <option value="array">Array (Grid)</option>
+              <option value="scatter">Scatter (Random)</option>
+              <option value="voronoi" selected>Voronoi</option>
+            </select>
+          </div>
+
+          <div class="input-group" style="flex: 1; margin: 0;">
+            <label class="group-label">Shape</label>
+            <select id="shape-select" class="custom-select">
+              <option value="symbol" selected>Symbol</option>
+              <option value="geometric">Geometric</option>
+              <option value="cellular">Cellular</option>
+              <option value="image">Custom Image</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group" id="symbol-type-group">
+          <label class="group-label">Shape Sub-Type</label>
+          <select id="symbol-type-select" class="custom-select" style="border: 1px solid var(--success);">
+            <!-- Options dynamically populated by JS -->
+          </select>
+        </div>
+
+        <div class="input-group" id="custom-svg-group" style="display: none;">
+          <label class="group-label">Custom SVG Path</label>
+          <input type="text" id="custom-svg-input" class="custom-select" style="font-family: monospace; font-size: 10px;" placeholder="M10 10 L90 90..." />
+        </div>
+
+        <!-- Custom Image Uploader (Hidden by default) -->
+        <div class="input-group" id="image-upload-group" style="display: none;">
+          <label class="group-label">Upload Instance Image (도장)</label>
+          <input type="file" id="image-upload" accept="image/*" class="file-input" />
+        </div>
+      </div>
+
+      <!-- Image Masking -->
+      <div class="control-section">
+        <div class="section-label">Image Masking (Optional)</div>
+        
+        <div class="input-group" style="position: relative;">
+          <label class="group-label">Upload Mask Image (마스킹)</label>
+          <div class="drop-zone" id="mask-drop-zone">
+            <span class="drop-zone-text">Drag & Drop Image Here<br>or click to browse</span>
+            <input type="file" id="mask-upload" accept="image/*" class="file-input-hidden" />
+          </div>
+          <button id="clear-mask-btn" class="icon-btn tooltip-btn" title="Clear Mask" style="display: none; position: absolute; right: 8px; top: 22px; width: 24px; height: 24px; z-index: 10;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="input-group switch-group">
+          <label class="group-label" style="margin: 0; cursor: pointer;" for="mask-enable">Enable Masking</label>
+          <label class="switch">
+            <input type="checkbox" id="mask-enable" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="input-group switch-group">
+          <label class="group-label" style="margin: 0; cursor: pointer;" for="mask-invert">Invert Mask</label>
+          <label class="switch">
+            <input type="checkbox" id="mask-invert" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Common Transform -->
+      <div class="control-section">
+        <div class="section-label">Common Transform</div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Tile X</span>
+            <input type="number" id="tile-x-input" class="number-input" value="10" step="1" min="1" max="100" />
+          </div>
+          <input type="range" id="tile-x-slider" min="1" max="100" step="1" value="10" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Tile Y</span>
+            <input type="number" id="tile-y-input" class="number-input" value="10" step="1" min="1" max="100" />
+          </div>
+          <input type="range" id="tile-y-slider" min="1" max="100" step="1" value="10" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Global Rotation (°)</span>
+            <input type="number" id="global-rot-input" class="number-input" value="0" step="1" min="-180" max="180" />
+          </div>
+          <input type="range" id="global-rot-slider" min="-180" max="180" step="1" value="0" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Offset X</span>
+            <input type="number" id="offset-x-input" class="number-input" value="0" step="0.01" min="-1" max="1" />
+          </div>
+          <input type="range" id="offset-x-slider" min="-1" max="1" step="0.01" value="0" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Offset Y</span>
+            <input type="number" id="offset-y-input" class="number-input" value="0" step="0.01" min="-1" max="1" />
+          </div>
+          <input type="range" id="offset-y-slider" min="-1" max="1" step="0.01" value="0" />
+        </div>
+      </div>
+
+      <!-- Randomness / Jitter -->
+      <div class="control-section">
+        <div class="section-label">Randomness (Jitter)</div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Base Scale</span>
+            <input type="number" id="scale-input" class="number-input" value="0.5" step="0.01" min="0.1" max="3.0" />
+          </div>
+          <input type="range" id="scale-slider" min="0.1" max="3.0" step="0.01" value="0.5" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Jitter Position</span>
+            <input type="number" id="jitter-pos-input" class="number-input" value="0.2" step="0.01" min="0" max="1" />
+          </div>
+          <input type="range" id="jitter-pos-slider" min="0" max="1" step="0.01" value="0.2" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Jitter Rotation (°)</span>
+            <input type="number" id="jitter-rot-input" class="number-input" value="0" step="1" min="0" max="180" />
+          </div>
+          <input type="range" id="jitter-rot-slider" min="0" max="180" step="1" value="0" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Jitter Scale</span>
+            <input type="number" id="jitter-scale-input" class="number-input" value="0.1" step="0.01" min="0" max="1" />
+          </div>
+          <input type="range" id="jitter-scale-slider" min="0" max="1" step="0.01" value="0.1" />
+        </div>
+      </div>
+
+      <!-- Render Settings -->
+      <div class="control-section">
+        <div class="section-label">Render Settings</div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Extrusion Height</span>
+            <input type="number" id="height-input" class="number-input" value="0.5" step="0.01" min="-1" max="1" />
+          </div>
+          <input type="range" id="height-slider" min="-1" max="1" step="0.01" value="0.5" />
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Random Seed</span>
+            <input type="number" id="seed-input" class="number-input" value="42" step="1" min="0" max="9999" />
+          </div>
+          <div class="seed-row">
+            <input type="range" id="seed-slider" min="0" max="9999" step="1" value="42" />
+            <button id="random-seed-btn" class="seed-btn" title="Randomize Seed">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export -->
+      <div class="control-section">
+        <div class="section-label">Export</div>
+        <div class="export-row">
+          <select id="resolution-select" class="custom-select">
+            <option value="1024">1024 × 1024</option>
+            <option value="2048">2048 × 2048</option>
+          </select>
+          <select id="export-type-select" class="custom-select">
+            <option value="heightmap">Height Map</option>
+            <option value="normalmap">Normal Map</option>
+          </select>
+        </div>
+        <button id="export-btn" class="export-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export PNG
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="panel-footer">
+        <p>Parametric Micro-Texture Generator v2.0</p>
+      </div>
+    </aside>
+
+    <!-- ═══ RIGHT PANEL — Preview ═══ -->
+    <main class="preview-panel" id="preview-panel">
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button id="tab-heightmap" class="tab-btn active"><span>Height Map</span></button>
+        <button id="tab-normalmap" class="tab-btn"><span>Normal Map</span></button>
+        <button id="tab-3d" class="tab-btn"><span>3D Preview</span></button>
+      </div>
+
+      <!-- Canvas -->
+      <div class="canvas-container">
+        
+        <button id="reset-view-btn" class="icon-btn tooltip-btn" title="Reset View" style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+
+        <div class="canvas-wrapper" id="canvas-wrapper">
+          <canvas id="texture-canvas"></canvas>
+        </div>
+        
+        <div class="canvas-wrapper" id="canvas-wrapper-3d" style="display: none; border: none; box-shadow: none;">
+          <!-- ThreeJS canvas will be appended here -->
+        </div>
+        
+        <div class="canvas-info" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+          <span class="info-badge" id="res-badge">Preview 1024×1024</span>
+          <span class="info-badge pattern-summary" id="pattern-summary">Voronoi Array + Star Symbol</span>
+          
+          <div class="info-badge" style="display: flex; align-items: center; gap: 6px; padding: 2px 6px 2px 2px;">
+            <input type="color" id="bg-color-input" value="#000000" style="width: 20px; height: 20px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
+            <span id="bg-color-hex" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);">#000000</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/engine.js"></script>
+  <script src="js/normalmap.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/preview3d.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
